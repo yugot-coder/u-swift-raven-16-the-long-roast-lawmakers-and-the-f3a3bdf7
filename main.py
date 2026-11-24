@@ -39,6 +39,22 @@ def main():
     assert back.strip(), "entry is only whitespace"
     assert "\n" not in back, "entry must be a single line"
     assert back.count(".") == 1 and back.endswith("."), "entry must be one sentence"
+    # Exact-length guard (explicit, not an assert, so it cannot be disabled
+    # with python -O): this entry is locked at exactly 189 characters. Any
+    # drift in TEXT or in the bytes actually written to disk must fail with
+    # a non-zero exit instead of silently passing the broader 1-320 range
+    # check above.
+    if len(TEXT) != 189:
+        print("verification failed: intended text is %d chars, expected 189" % len(TEXT), file=sys.stderr)
+        return 1
+    if len(back) != 189:
+        print("verification failed: written file is %d chars, expected 189" % len(back), file=sys.stderr)
+        return 1
+    with open(path, "rb") as f:
+        raw = f.read()
+    if raw != TEXT.encode("utf-8"):
+        print("verification failed: written bytes differ from intended UTF-8 text", file=sys.stderr)
+        return 1
     digest = hashlib.sha256(back.encode("utf-8")).hexdigest()
     print(TEXT)
     print("chars=%d sha256=%s" % (len(back), digest))
